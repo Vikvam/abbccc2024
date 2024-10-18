@@ -15,29 +15,30 @@ class Block(ABC):
         pass
 
 class Electrolyser(Block):
-    def __init__(self, h2_energy_ratio: float, switch_on_delay: int, switch_off_delay: int):
+    def __init__(self, h2_energy_ratio: float, switch_on_delay: int, switch_off_delay: int, max_power: float):
         """
-        h2_power_ratio: how much kwh needed to produce one ton of h2
+        h2_power_ratio: how much kwh needed to produce one kg of h2
         switch_on_delay: how many samples needed for it to turn on
         switch_off_delay: how many samples needed for it to turn off
+        max_power: how much kw it can handle
         """
 
         # Stale parameters
-        self._h2_power_ratio = h2_power_ratio
+        self._h2_energy_ratio = h2_energy_ratio
         self._switch_on_delay = switch_on_delay
         self._switch_off_delay = switch_off_delay
+        self._max_power = max_power
 
         self._cur_switch_on_delay = switch_on_delay
         self._cur_switch_off_delay = switch_off_delay
         self._on = True
         self._current_h2_output: float = 0
-        self._procentual_power: float = 0
 
     # state update
     def compute(self, input_energy: float):
-        if on:
+        if self._on:
             if self._cur_switch_on_delay >= self._switch_on_delay:
-                self._current_h2_output = self._h2_power_ratio * self.procentual_power * input_energy
+                self._current_h2_output = input_energy / self._h2_energy_ratio
             else:
                 self.current_h2_output = 0
                 self._cur_switch_on_delay += 1
@@ -45,12 +46,11 @@ class Electrolyser(Block):
             if self._cur_switch_off_delay >= self._switch_off_delay:
                 self._current_h2_output = 0
             else:
-                self.current_h2_output = self._h2_power_ratio * self.procentual_power * input_energy
+                self.current_h2_output = input_energy / self._h2_energy_ratio
                 self._cur_switch_off_delay += 1
 
     def set_parameters(self, parameters):
         on = parameters[0] 
-        procentual_power = parameters[1]
         if on == True:
             self._on = True
             self._cur_switch_off_delay = 0
@@ -58,13 +58,11 @@ class Electrolyser(Block):
             self._on = False
             self._cur_switch_on_delay = 0
 
-        self._procentual_power = procentual_power
-
     def get_parameters(self):
-        return [self._on, self.procentual_power]
+        return [self._on]
 
     def output(self):
-        return self.current_h2_output
+        return self._current_h2_output
 
 class Buffer(Block):
     def __init__(self, max_energy_storage: float, max_input_energy: float, max_output_energy: float):
@@ -116,8 +114,8 @@ class ABBCCCModel():
 
         self._electrolysers: List[Electrolyser] = electrolysers
         self._buffers: List[Buffer] = buffers
-        self._n_electrolysers = len(self.electrolysers)
-        self._n_buffers = len(self.buffers) 
+        self._n_electrolysers = len(electrolysers)
+        self._n_buffers = len(buffers) 
         self._sampling_period = sampling_period
 
         self._last_energy = 0
@@ -147,13 +145,28 @@ class ABBCCCModel():
         for i, buffer in enumerate(self._buffers):
             buffer.set_parameters(buffer_parameters[i]) 
 
-        # now, update block inputs
+        # now, update block states
+        self._last_energy = input_energy + buffer_energy   # sumator
         for buffer in self._buffers:
             buffer.compute(self._last_energy)
         for electrolyser in self._electrolysers:
             electrolyser.compute(self._last_energy)
 
-        self._last_energy = input_energy + buffer_energy
+
+    def simulate(self, time_series_w):
+        for n in time_series_w:
+            self.step(n / self._sampling_period)
 
 if __name__ == "__main__":
-    pass
+
+    # first: Quest One
+    electrolysers = [Electrolyser(53, 20, 5, 150), Electrolyser(60, 5, 2, 50)]
+    buffers = []
+
+    model = ABBCCCModel(electrolysers, buffers, 12)
+
+    # in kw
+    time_series_w = [10000, 10000, 10000, 10000]
+
+    model.simulate(time_series_w)
+    
