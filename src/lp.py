@@ -38,11 +38,11 @@ class LP:
     def _init_model(self) -> (grb.Model, dict[str, grb.Var]):
         model = grb.Model()
 
-        L = model.addVars(self.N, self.T, vtype=grb.GRB.CONTINUOUS, lb=0, ub=1, name="L")  # input, desired load
+        L = model.addVars(self.N, self.T, vtype=grb.GRB.CONTINUOUS, lb=0, ub=1, name="L")   # input, desired load
         l = model.addVars(self.N, self.T, vtype=grb.GRB.CONTINUOUS, lb=0, ub=1, name="l")   # output, current load
-        diff_abs = model.addVars(self.T, vtype=grb.GRB.CONTINUOUS, lb=0)                    # | production - demand |
+        diff_abs = model.addVars(self.T, vtype=grb.GRB.CONTINUOUS, lb=0)                    # helper, |diff|
         diff = model.addVars(self.T, vtype=grb.GRB.CONTINUOUS)                              # helper, production - demand
-        on = model.addVars(self.N, self.T, vtype=grb.GRB.BINARY, name="on")                 # input, on / off
+        on = model.addVars(self.N, self.T, vtype=grb.GRB.BINARY, name="on")                 # helper, to limit load
 
         for t in range(self.T):
             for n in range(self.N):
