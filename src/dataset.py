@@ -11,7 +11,7 @@ class Dataset:
     radiation: str
     slope: int
     azimuth: int
-    nominal: float
+    nominal_power: float
     losses: float
     data: pd.DataFrame
 
@@ -39,10 +39,30 @@ class Dataset:
             radiation=radiation,
             slope=slope,
             azimuth=azimuth,
-            nominal=nominal,
+            nominal_power=nominal,
             losses=losses,
             data=data
         )
+
+    @property
+    def data_time(self):
+        return self.data["time"]
+
+    @property
+    def data_irradiance(self):
+        return self.data["G(i)"]
+
+    @property
+    def data_sun_height(self):
+        return self.data["H_sun"]
+
+    @property
+    def data_air_temp(self):
+        return self.data["T2m"]
+
+    @property
+    def data_wind_speed(self):
+        return self.data["WS10m"]
 
 
 if __name__ == "__main__":

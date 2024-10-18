@@ -1,0 +1,2 @@
+https://re.jrc.ec.europa.eu/pvg_tools/en/#api_5.3	Solar
+https://globalwindatlas.info/en/			Wind
