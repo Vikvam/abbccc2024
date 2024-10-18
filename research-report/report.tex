@@ -1,0 +1,86 @@
+%
+% Author:  Stepan Pressl
+% Last Edit Date: 19.3.2023
+%
+\documentclass[twoside,11pt]{article}
+\usepackage[a4paper]{geometry}
+\geometry{verbose,tmargin=2.5cm,bmargin=2cm,lmargin=2cm,rmargin=2cm}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+
+\usepackage{lmodern}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[czech]{babel}
+\usepackage{amsmath}
+\usepackage{icomma}
+\usepackage{url}
+\usepackage{multirow}
+\usepackage{subcaption}
+\usepackage{graphicx}
+\usepackage{epstopdf}
+\usepackage[unicode=true, bookmarks=true,bookmarksnumbered=true,
+bookmarksopen=false, breaklinks=false,pdfborder={0 0 0},
+pdfpagemode=UseNone,backref=false,colorlinks=true] {hyperref}
+\usepackage{xkeyval} % Inline todonotes
+\usepackage[textsize = footnotesize]{todonotes}
+\presetkeys{todonotes}{inline}{}
+
+\newcommand{\pd}{\partial}
+\newcommand{\pdfrac}[2]{\frac{\pd #1}{\pd #2}}
+\newcommand{\jim}{\mathrm{j}}
+\newcommand{\jd}[2]{#1\,\mathrm{#2}}
+\newcommand{\limgt}[2]{\lim_{#1 \rightarrow #2}} % lim #1 goes to #2
+\newcommand{\mrm}[1]{\mathrm{#1}}
+\newcommand{\ohm}{\Omega}
+\newcommand{\degc}{^\circ\mathrm{C}}
+\newcommand{\cdotn}{\!\cdot\!}
+
+% smaz aktualni page layout
+\fancyhf{}
+% zahlavi
+\usepackage{titling}
+\fancyhf[HC]{\thetitle}
+\fancyhf[HLE,HRO]{\theauthor}
+\fancyhf[HRE,HLO]{\today}
+ %zapati
+\fancyhf[FLE,FRO]{\thepage}
+
+\title{ABBCCC - Report k projektu Ostrovní Energie}
+\author{Vibašštěto Team}
+\date{\today}
+
+\begin{document}
+\maketitle
+Tento dokument popisuje metologii použitou při řešení úlohy Ostrovní Energie.
+Na rozdíl od konkrétního zadání s použitím AWE/PEM elektrolyzérů používáme
+obecný model elektrolyzérů. Používáme i obecný model takzvaných bufferů,
+které slouží na uložení nadbytečně vyprodukované energie.
+
+Cílem je ze zadaných obecných hodnot pomocí optimalizačních metod vypočítat
+optimální strategie řízení energie. Při konkrétním návrhu finálního řešení
+lze použít konkrétní AWE/PEM elektrolyzéry a buffery, mezi které patří
+například akumulátory elektrické energie či gravitační baterie.
+
+Finální grafická aplikace dovoluje uživateli zadat konkrétní hodnoty,
+které budou popsány v následující 
+použitých elektrolyzérů
+
+\section{Popis modelu}
+
+\end{document}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
