@@ -1,5 +1,7 @@
 import io
 from dataclasses import dataclass
+
+import numpy as np
 import pandas as pd
 
 
@@ -71,4 +73,3 @@ class Dataset:
 
 if __name__ == "__main__":
     dataset = Dataset.load("../data/Timeseries_33.153_-100.213_E5_200000kWp_crystSi_14_33deg_-3deg_2013_2023.csv")
-    print(dataset.data_power)
