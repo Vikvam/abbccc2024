@@ -5,6 +5,7 @@ import pandas as pd
 from networkx.algorithms.efficiency_measures import efficiency
 from retry_requests import retry
 import numpy as np
+from dataclasses import make_dataclass
 
 """
 #####################################################################################
@@ -12,7 +13,7 @@ import numpy as np
 #####################################################################################
 """
 
-latitude = 52.52
+latitude = 51.52
 longitude = 13.41
 
 
@@ -28,7 +29,7 @@ params = {
 	"latitude": latitude,
 	"longitude": longitude,
 	"hourly": "wind_speed_180m",
-	"past_days": 92
+	"past_days": 91
 }
 responses = openmeteo.weather_api(url, params=params)
 
@@ -76,7 +77,7 @@ params = {
 	"latitude": latitude,
 	"longitude": longitude,
 	"hourly": "direct_normal_irradiance",
-	"past_days": 92
+	"past_days": 91
 }
 responses = openmeteo.weather_api(url, params=params)
 
@@ -90,6 +91,7 @@ print(f"Timezone difference to GMT+0 {response.UtcOffsetSeconds()} s")
 # Process hourly data. The order of variables needs to be the same as requested.
 hourly = response.Hourly()
 hourly_direct_normal_irradiance = hourly.Variables(0).ValuesAsNumpy()
+#print(hourly_direct_normal_irradiance)
 
 hourly_data = {"date": pd.date_range(
 	start = pd.to_datetime(hourly.Time(), unit = "s", utc = True),
@@ -100,6 +102,7 @@ hourly_data = {"date": pd.date_range(
 hourly_data["direct_normal_irradiance"] = hourly_direct_normal_irradiance
 
 hourly_dataframe_solar = pd.DataFrame(data = hourly_data)
+time = hourly_dataframe_solar.date
 hourly_dataframe_solar = hourly_dataframe_solar.direct_normal_irradiance
 hourly_dataframe_solar = pd.Series.to_numpy(hourly_dataframe_solar)
 
@@ -123,14 +126,48 @@ def optimal_wind_power(data, air_density, area_of_turbine, efficiency, number_of
 def optimal_solar_power(data, area, panel_efficiency, performance_ratio):
 	return data * area * panel_efficiency * performance_ratio
 
-def main(hourly_dataframe_wind, hourly_dataframe_solar, wind_params, solar_params):
+
+def main(hourly_dataframe_wind, hourly_dataframe_solar, wind_params, solar_params, latitude, longitude, time):
 	wind_power = optimal_wind_power(hourly_dataframe_wind, wind_params[0], wind_params[1],
 									wind_params[2], wind_params[3])
-	solar_params = optimal_solar_power(hourly_dataframe_solar, solar_params[0],
+	solar_power = optimal_solar_power(hourly_dataframe_solar, solar_params[0],
 									   solar_params[1], solar_params[2])
-	for i in range(len(hourly_dataframe_wind)):
-		print("wind power: ", wind_power[i], "  solar power", solar_params[i])
-		print("wind data: ", hourly_dataframe_wind[i])
+	"""for i in range(len(hourly_dataframe_wind)):
+		print("wind power: ", wind_power[i], "  solar power", solar_power[i])
+		print("wind data: ", hourly_dataframe_wind[i])"""
+	#print(wind_power,"here")
+	return wind_power, solar_power, latitude, longitude, time
+
+class Dataset:
+	latitude: float
+	longitude: float
+	elevation: float
+	radiation: str
+	slope: int
+	azimuth: int
+	nominal_power: float
+	losses: float
+	data: pd.DataFrame
+
+	def load(self):
+		global longitude, latitude, time
+		#print(longitude, latitude, time)
+		data1, data2, latitude, longitude, time = main(hourly_dataframe_wind, hourly_dataframe_solar,
+													   wind_params, solar_params, latitude, longitude, time)
+		elevation = 530.0
+		radiation = 'PVGIS-ERA5'
+		slope = 33
+		azimuth = -3
+		nominal_power = 200000.0
+		losses = 14.0
+		data = data1 + data2
+		#power = make_dataclass("P",[("P", float)])
+		d = {'P': data}
+		df = pd.DataFrame(data=d)
+		print(df)
+
+
 
 if __name__ == "__main__":
-	main(hourly_dataframe_wind, hourly_dataframe_solar, wind_params, solar_params)
+	#data1, data2, latitude, longitude, time = main(hourly_dataframe_wind, hourly_dataframe_solar, wind_params, solar_params, latitude, longitude, time)
+	dataset = Dataset().load()
