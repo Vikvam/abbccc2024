@@ -15,7 +15,7 @@ class Consumer:
 
 
 PEM = Consumer(0, 200*10e3, .4, 1 / 4.7)
-AWE = Consumer(2, 2.17*10e6, .2, 1 / 4.1)
+AWE = Consumer(3, 2.17*10e6, .2, 1 / 4.1)
 
 
 @dataclass
@@ -28,6 +28,7 @@ class Result:
     buffer_capacity: np.array
     production_gap: np.array
     P_delta: float
+    P_avg: float
 
     def __str__(self):
         return f"obj: {self.obj}, buffer_capacity: {self.buffer_capacity}, P_delta: {self.P_delta}"
@@ -70,7 +71,7 @@ class LP:
             for n in range(self.N):
                 model.addGenConstrIndicator(on[n, t], 1, L[n, t] >= self.l_min[n])
                 model.addGenConstrIndicator(on[n,t], 0, L[n,t] == 0)
-        # # consumer system → l
+        # consumer system → l
         model.addConstrs((
             l[n,t] == 1 / self.t_delta[n] * grb.quicksum(L[n, i] for i in range(max(0, t - self.t_delta[n]), t))
             for t in range(self.T) for n in range(self.N)
@@ -81,17 +82,18 @@ class LP:
             H[t] == grb.quicksum(l[n,t] * self.p_max[n] * self.H[n] for n in range(self.N))
             for t in range(self.T)
         ))
+        # buffer capacity
+        model.addConstr(b <= self.b_max)
+        model.addConstrs((B[t] <= b for t in range(self.T)))
+        model.addConstrs((B[t] >= -b for t in range(self.T)))
         # power in /out
         model.addConstrs((
-            P_out[t] == B[t] + grb.quicksum(l[n,t] * self.p_max[n] for n in range(self.N))
+            P_out[t] == grb.quicksum(l[n,t] * self.p_max[n] for n in range(self.N))
             for t in range(self.T)
         ))
-        # integral of B always >= 0
-        model.addConstrs((0 <= grb.quicksum(B[i] for i in range(t)) for t in range(self.T)))
-        model.addConstrs((b >= grb.quicksum(B[i] for i in range(t)) for t in range(self.T)))
         # power difference
         model.addConstrs((
-            P_delta_[t] == self.P[t] - P_out[t]
+            P_delta_[t] == self.P[t] - B[t] - P_out[t]
             for t in range(self.T)
         ))
         model.addConstrs((
@@ -101,7 +103,7 @@ class LP:
         # power average over T
         avg = np.mean(self.P[t])
         model.addConstrs((
-            P_avg_[t] == avg
+            P_avg_[t] == avg - P_out[t]
             for t in range(self.T)
         ))
         model.addConstrs((
@@ -110,10 +112,13 @@ class LP:
         ))
 
         # stability constraints
-        model.addConstr(grb.quicksum(P_delta) <= 10e5)
-        model.addConstr(grb.quicksum(P_avg) <= 10e5)
+        # model.addConstr(grb.quicksum(P_delta) <= 10e5)
+        # model.addConstr(grb.quicksum(P_avg) <= 10e5)
 
-        model.setObjectiveN(-grb.quicksum(H), index=0)
+        model.setObjectiveN(
+            - grb.quicksum(H) / (np.sum(self.p_max) + self.T) * 1
+            + grb.quicksum(P_avg[t] for t in range(self.T)) / avg
+        , index=0)
         model.setObjectiveN(b, index=1)
         model.ModelSense = grb.GRB.MINIMIZE
 
@@ -134,6 +139,7 @@ class LP:
             P = [[self.model.getVarByName(f"l[{n},{t}]").x * self.p_max[n] for t in range(self.T)] for n in range(self.N)]
             H = [self.model.getVarByName(f"H[{t}]").x for t in range(self.T)]
             B = [self.model.getVarByName(f"B[{t}]").x for t in range(self.T)]
+            P_avg = [self.model.getVarByName(f"P_avg[{t}]").x for t in range(self.T)]
             result = Result(
                 obj=-np.sum(self.model.obj),
                 H=np.array(H),
@@ -142,6 +148,7 @@ class LP:
                 buffered=np.array(B),
                 buffer_capacity=self.model.getVarByName(f"b").x,
                 P_delta=None,
+                P_avg=np.array(P_avg),
                 production_gap=[]
             )
             self.validate_result(result)
