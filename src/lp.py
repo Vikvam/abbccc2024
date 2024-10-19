@@ -34,11 +34,12 @@ class Result:
 
 
 class LP:
-    def __init__(self, production: np.array, PEM_amount: int, AWE_amount: int, eps_production: int):
+    def __init__(self, production: np.array, PEM_amount: int, AWE_amount: int, eps_production: int, b_max: float = np.inf):
         self.P = production
         self.T = len(production)
         self.N = PEM_amount + AWE_amount
-        self.eps_P = eps_production
+
+        self.b_max = b_max
 
         self.p_max = [PEM.p_max] * PEM_amount + [AWE.p_max] * AWE_amount
         self.l_min = [PEM.load_min] * PEM_amount + [AWE.load_min] * AWE_amount
@@ -54,7 +55,7 @@ class LP:
         l = model.addVars(self.N, self.T, vtype=grb.GRB.CONTINUOUS, lb=0, ub=1, name="l")       # system output, current load
         L = model.addVars(self.N, self.T, vtype=grb.GRB.CONTINUOUS, lb=0, ub=1, name="L")       # system input, desired load
         H = model.addVars(self.T, vtype=grb.GRB.CONTINUOUS, lb=0, name="H")                     # amount of H2
-        b = model.addVar(vtype=grb.GRB.CONTINUOUS, lb=0, name="b")                              # buffer capacity
+        b = model.addVar(vtype=grb.GRB.CONTINUOUS, lb=0, ub=self.b_max, name="b")                              # buffer capacity
         B = model.addVars(self.T, vtype=grb.GRB.CONTINUOUS, name="B")                           # rate of charging
         # auxiliary variables
         on = model.addVars(self.N, self.T, vtype=grb.GRB.BINARY)                                # helper, to limit load
@@ -108,10 +109,12 @@ class LP:
             for t in range(self.T)
         ))
 
+        # stability constraints
+        model.addConstr(grb.quicksum(P_delta) <= 10e5)
+        model.addConstr(grb.quicksum(P_avg) <= 10e5)
+
         model.setObjectiveN(-grb.quicksum(H), index=0)
-        model.setObjectiveN(grb.quicksum(P_avg), index=1)
-        model.setObjectiveN(grb.quicksum(P_delta), index=2)
-        model.setObjectiveN(b, index=3)
+        model.setObjectiveN(b, index=1)
         model.ModelSense = grb.GRB.MINIMIZE
 
         model.Params.NumericFocus = 3
